@@ -1,0 +1,435 @@
+﻿@page "/quiz-game/{lobbyPin}"
+@using Frontend.Services
+@inject NavigationManager NavigationManager
+@inject SignalRClientService SignalRClientService
+@inject IJSRuntime JSRuntime
+
+@code {
+    [Parameter] public string lobbyPin { get; set; }
+
+    private string nickname = string.Empty;
+    private string avatarUrl = string.Empty;
+    private bool isNicknameSet = false;
+
+    private bool isQuestionActive = false;
+    private bool quizEnded = false; 
+    private string currentQuestion = string.Empty;
+    private List<string> options = new();
+    private int timeRemaining = 0;
+    private string selectedAnswer = string.Empty;
+    private string feedbackMessage = string.Empty;
+    private bool isAnswerSubmitted = false;
+
+    private List<PlayerResponse> playerAnswers = new();
+    private Dictionary<string, int> playerScores = new();
+
+    // Slovník pro avatary hráčů
+    private Dictionary<string, string> avatarUrls = new();
+
+    private string currentQuestionImageUrl = string.Empty;
+    private string currentCorrectAnswer = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SignalRClientService.IsConnected)
+        {
+            await SignalRClientService.StartConnection("https://localhost:5198/gamehub");
+        }
+
+        // Registrace metod, které se volají z hubu
+        SignalRClientService.RegisterReceiveMessage(HandleServerMessage);
+        SignalRClientService.RegisterQuestion(ReceiveQuestion);
+        SignalRClientService.RegisterTimerUpdate(UpdateTimer);
+        SignalRClientService.RegisterPlayerAnswers(UpdatePlayerAnswers);
+        SignalRClientService.RegisterUpdatePlayerScores(UpdatePlayerScores);
+
+        // Registrace callbacku pro aktualizaci seznamu hráčů včetně avatarů
+        SignalRClientService.RegisterUpdateUserList((users, avatars) =>
+        {
+            avatarUrls = avatars;
+            InvokeAsync(StateHasChanged);
+        });
+
+        // Registrace události, která signalizuje ukončení kvízu
+        SignalRClientService.RegisterShowFinalScoreboard(() =>
+        {
+            quizEnded = true;
+            isQuestionActive = false;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await LoadNicknameFromLocalStorage();
+    }
+
+    private async Task LoadNicknameFromLocalStorage()
+    {
+        nickname = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "nickname");
+        avatarUrl = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "avatarUrl");
+
+        if (string.IsNullOrEmpty(nickname) || string.IsNullOrEmpty(avatarUrl))
+        {
+            feedbackMessage = "Nickname or avatar URL is missing. Please rejoin the lobby.";
+            NavigationManager.NavigateTo($"/joinlobby");
+        }
+        else
+        {
+            await SignalRClientService.JoinLobby(lobbyPin, nickname, avatarUrl);
+            isNicknameSet = true;
+        }
+    }
+
+    private async Task SubmitAnswer()
+    {
+        if (!isAnswerSubmitted && isQuestionActive && !string.IsNullOrEmpty(selectedAnswer))
+        {
+            try
+            {
+                await SignalRClientService.SubmitAnswer(lobbyPin, nickname, selectedAnswer);
+                feedbackMessage = "Answer submitted successfully!";
+                isAnswerSubmitted = true;
+            }
+            catch (Exception ex)
+            {
+                feedbackMessage = $"Failed to submit answer: {ex.Message}";
+            }
+        }
+        else if (string.IsNullOrEmpty(selectedAnswer))
+        {
+            feedbackMessage = "Please select an answer before submitting.";
+        }
+
+        StateHasChanged();
+    }
+
+    private void UpdateTimer(int secondsLeft)
+    {
+        timeRemaining = secondsLeft;
+        if (timeRemaining <= 0)
+        {
+            isQuestionActive = false;
+            feedbackMessage = "Time's up!";
+        }
+        StateHasChanged();
+    }
+
+    private void SelectAnswer(string option)
+    {
+        if (!isAnswerSubmitted && isQuestionActive)
+        {
+            selectedAnswer = option;
+            feedbackMessage = $"Selected: {option}";
+        }
+    }
+
+    private void UpdatePlayerAnswers(List<PlayerAnswer> answers)
+    {
+        playerAnswers = answers.Select(a => new PlayerResponse
+            {
+                Nickname = a.Nickname,
+                Answer = a.Answer
+            }).ToList();
+
+        StateHasChanged();
+    }
+
+    private void HandleServerMessage(string message)
+    {
+        feedbackMessage = message;
+        StateHasChanged();
+    }
+
+    private void ReceiveQuestion(string questionText, string imageUrl, List<string> questionOptions, string correctAnswer)
+    {
+        currentQuestion = questionText;
+        currentQuestionImageUrl = imageUrl;
+        options = questionOptions;
+        currentCorrectAnswer = correctAnswer;
+
+        timeRemaining = 20;
+        selectedAnswer = string.Empty;
+        feedbackMessage = string.Empty;
+        isAnswerSubmitted = false;
+        isQuestionActive = true;
+        quizEnded = false;
+
+        StateHasChanged();
+    }
+
+    private void ReceiveCorrectAnswer(string correctAnswer)
+    {
+        currentCorrectAnswer = correctAnswer;
+        StateHasChanged();
+    }
+
+    private void UpdatePlayerScores(Dictionary<string, int> scores)
+    {
+        playerScores = scores;
+        StateHasChanged();
+    }
+
+    public class PlayerResponse
+    {
+        public string Nickname { get; set; }
+        public string Answer { get; set; }
+    }
+}
+
+@if (!isNicknameSet)
+{
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <p>Loading game...</p>
+    </div>
+}
+else
+{
+    <div class="background">
+        <div class="container">
+
+            @if (!quizEnded)
+            {
+                <div class="row mb-4">
+                    <div class="col">
+                        @if (isQuestionActive)
+                        {
+                            <div class="card p-3 question-card">
+                                <div class="card-body question-body">
+                                    <h2 class="question-title">@currentQuestion</h2>
+
+                                    @if (!string.IsNullOrEmpty(currentQuestionImageUrl))
+                                    {
+                                        <img src="@currentQuestionImageUrl"
+                                             alt="Question Image"
+                                             class="question-image" />
+                                    }
+
+                                    <div class="row g-3 kahoot-answers">
+                                        @for (int i = 0; i < options.Count; i++)
+                                        {
+                                            var option = options[i];
+                                            var blockColor = i switch
+                                            {
+                                                0 => "answer-block-red",
+                                                1 => "answer-block-blue",
+                                                2 => "answer-block-green",
+                                                3 => "answer-block-orange",
+                                                _ => "answer-block-default"
+                                            };
+
+                                            <div class="col-12 col-md-6">
+                                                <div class="answer-block @blockColor @(selectedAnswer == option ? "selected" : "")"
+                                                     @onclick="() => SelectAnswer(option)">
+                                                    @option
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <button class="btn btn-primary mt-3"
+                                            @onclick="SubmitAnswer"
+                                            disabled="@isAnswerSubmitted">
+                                        Submit Answer
+                                    </button>
+
+                                    <p class="mt-3">
+                                        Time Remaining:
+                                        <span class="badge bg-secondary">
+                                            @timeRemaining seconds
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <p>Time's up!</p>
+                                @if (!string.IsNullOrEmpty(currentCorrectAnswer))
+                                {
+                                    <p><strong>Correct Answer:</strong> @currentCorrectAnswer</p>
+                                    @if (!string.IsNullOrEmpty(selectedAnswer))
+                                    {
+                                        <p><strong>Your Answer:</strong> @selectedAnswer</p>
+                                        @if (selectedAnswer == currentCorrectAnswer)
+                                        {
+                                            <p class="text-success">You answered correctly!</p>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-danger">You answered incorrectly.</p>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <p>You did not select any answer.</p>
+                                    }
+                                }
+                                else
+                                {
+                                    <p>No active question.</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Skóre hráčů -->
+                <div class="row">
+                    <div class="col">
+                        <h4>Player Scores</h4>
+                        <ul class="list-group">
+                            @{
+                                var sortedScores = playerScores
+                                .OrderByDescending(score => score.Value)
+                                .Select((score, index) => new { Position = index + 1, score.Key, score.Value })
+                                .ToList();
+                            }
+                            @foreach (var s in sortedScores)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        @if (avatarUrls.ContainsKey(s.Key))
+                                        {
+                                            <img src="@avatarUrls[s.Key]" alt="Avatar" class="score-avatar me-2" />
+                                        }
+                                        <span><strong>@s.Position.</strong> @s.Key</span>
+                                    </div>
+                                    <span class="badge bg-primary">@s.Value points</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Finální hodnotící tabulka -->
+                <div class="row">
+                    <div class="col">
+                        <h2 class="text-center">Final Results</h2>
+                        <ul class="list-group">
+                            @{
+                                var sortedScores = playerScores
+                                .OrderByDescending(score => score.Value)
+                                .Select((score, index) => new { Position = index + 1, score.Key, score.Value })
+                                .ToList();
+                            }
+                            @foreach (var s in sortedScores)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        @if (avatarUrls.ContainsKey(s.Key))
+                                        {
+                                            <img src="@avatarUrls[s.Key]" alt="Avatar" class="score-avatar me-2" />
+                                        }
+                                        <span><strong>@s.Position.</strong> @s.Key</span>
+                                    </div>
+                                    <span class="badge bg-success">@s.Value points</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+
+            <!-- Feedback sekce -->
+            <div class="row mt-3">
+                <div class="col">
+                    <h4>Feedback</h4>
+                    <div class="alert alert-info">
+                        <p>@feedbackMessage</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .background {
+        background-image: url('./images/joinlobby_background.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        min-height: 100vh;
+    }
+
+    .container {
+        padding-top: 3rem;
+    }
+
+    .question-card {
+        border: 2px solid #eee;
+        border-radius: 10px;
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .question-body {
+        text-align: center;
+    }
+
+    .question-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .question-image {
+        display: block;
+        max-width: 100%;
+        max-height: 300px;
+        object-fit: cover;
+        margin: 0 auto 1rem auto;
+    }
+
+    .kahoot-answers {
+        margin-top: 1rem;
+    }
+
+    .answer-block {
+        cursor: pointer;
+        color: #fff;
+        padding: 1.5rem;
+        text-align: center;
+        font-weight: bold;
+        border-radius: 8px;
+        transition: transform 0.1s ease-in-out, box-shadow 0.1s;
+        user-select: none;
+    }
+
+        .answer-block:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+    .answer-block-red {
+        background-color: #e74c3c;
+    }
+
+    .answer-block-blue {
+        background-color: #3498db;
+    }
+
+    .answer-block-green {
+        background-color: #27ae60;
+    }
+
+    .answer-block-orange {
+        background-color: #e67e22;
+    }
+
+    .answer-block-default {
+        background-color: #9b59b6;
+    }
+
+    .answer-block.selected {
+        outline: 4px solid #fff;
+        box-shadow: 0 0 0 3px #555;
+    }
+
+    .score-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+</style>

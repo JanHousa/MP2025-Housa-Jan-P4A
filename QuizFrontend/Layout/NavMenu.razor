@@ -1,0 +1,53 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<nav class="sidebar bg-dark text-white" style="min-width: 250px; height: 100vh; position: fixed; top: 0; left: 0;">
+    <div class="sidebar-header p-3">
+        <a class="navbar-brand text-white fw-bold" href="/">QuizApp</a>
+    </div>
+    <ul class="nav flex-column mt-3">
+        <li class="nav-item">
+            <NavLink class="nav-link text-white d-flex align-items-center" href="/joinlobby">
+                <i class="bi bi-door-open-fill me-2"></i> Join Lobby
+            </NavLink>
+        </li>
+        @if (isUserLoggedIn)
+        {
+            <li class="nav-item">
+                <NavLink class="nav-link text-white d-flex align-items-center" href="/create-quiz">
+                    <i class="bi bi-plus-circle-fill me-2"></i> Create a Quiz
+                </NavLink>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link text-white bg-transparent border-0 d-flex align-items-center" @onclick="Logout">
+                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                </button>
+            </li>
+        }
+        else
+        {
+            <li class="nav-item">
+                <NavLink class="nav-link text-white d-flex align-items-center" href="/login">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Login
+                </NavLink>
+            </li>
+        }
+    </ul>
+</nav>
+
+@code {
+    private bool isUserLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+        isUserLoggedIn = !string.IsNullOrEmpty(token);
+    }
+
+    private async Task Logout()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        isUserLoggedIn = false;
+        NavigationManager.NavigateTo("/login");
+    }
+}

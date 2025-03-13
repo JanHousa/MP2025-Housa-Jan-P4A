@@ -1,0 +1,67 @@
+﻿@page "/test-signalr"
+@using Microsoft.AspNetCore.SignalR.Client
+
+<h3>SignalR Test</h3>
+
+<button @onclick="ConnectToSignalR">Připojit se k SignalR</button>
+<button @onclick="SendMessage" disabled="@(!isConnected)">Poslat zprávu do SignalR</button>
+
+@if (!string.IsNullOrEmpty(receivedMessage))
+{
+    <p>Přijatá zpráva: @receivedMessage</p>
+}
+
+@code {
+    private HubConnection? hubConnection;
+    private bool isConnected = false;
+    private string? receivedMessage;
+
+    // Připojení k SignalR hubu s logováním
+    private async Task ConnectToSignalR()
+    {
+        try
+        {
+            Console.WriteLine("Starting SignalR connection...");
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl("https://localhost:5198/gamehub") // Backend URL pro SignalR hub
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Příjem zprávy od serveru
+            hubConnection.On<string>("ReceiveMessage", message =>
+            {
+                receivedMessage = message;
+                StateHasChanged(); // Aktualizace UI při přijetí zprávy
+                Console.WriteLine($"Received message from server: {message}");
+            });
+
+            // Zahájení připojení
+            await hubConnection.StartAsync();
+            isConnected = true;
+            Console.WriteLine("SignalR connected.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chyba při připojení k SignalR: {ex.Message}");
+        }
+    }
+
+    // Odeslání zprávy do SignalR hubu
+    private async Task SendMessage()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("SendMessage", "Zpráva z Blazor klienta!");
+            Console.WriteLine("Zpráva odeslána do SignalR.");
+        }
+    }
+
+    // Ukončení připojení
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

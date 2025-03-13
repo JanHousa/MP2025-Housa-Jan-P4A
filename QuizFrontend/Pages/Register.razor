@@ -1,0 +1,78 @@
+﻿@page "/register"
+@inject HttpClient Http
+@code {
+    private RegisterModel registerModel = new RegisterModel();
+    private string registrationMessage = string.Empty;
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("https://localhost:5198/api/user/register", registerModel);
+            if (response.IsSuccessStatusCode)
+            {
+                registrationMessage = "Registration successful!";
+            }
+            else
+            {
+                var errorResponse = await response.Content.ReadAsStringAsync(); // Logování chybové zprávy
+                registrationMessage = $"Registration failed: {errorResponse}";
+            }
+        }
+        catch (Exception ex)
+        {
+            registrationMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+}
+
+<div class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-light custom-background">
+    <div class="card shadow-lg p-4 position-relative" style="max-width: 400px; width: 100%;">
+        <div class="text-center">
+            <h3 class="mb-4">Register</h3>
+        </div>
+
+        <EditForm Model="registerModel" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="alert alert-danger" />
+
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <InputText id="username" class="form-control" @bind-Value="registerModel.Username" placeholder="Enter your username" />
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <InputText id="password" type="password" class="form-control" @bind-Value="registerModel.Password" placeholder="Enter your password" />
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">Register</button>
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(registrationMessage))
+        {
+            <div class="alert alert-info mt-3">
+                @registrationMessage
+            </div>
+        }
+
+        <div class="text-center mt-3">
+            <small>Are you already registered? <a href="/login" class="text-primary">Login here</a></small>
+        </div>
+    </div>
+</div>
+
+<style>
+    .custom-background {
+        background-image: url('./images/joinlobby_background.jpg'); 
+        background-size: cover; 
+        background-position: center;
+        background-repeat: no-repeat; 
+    }
+</style>

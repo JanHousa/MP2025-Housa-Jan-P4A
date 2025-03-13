@@ -1,0 +1,83 @@
+is_global = true
+build_property.EnableAotAnalyzer = 
+build_property.EnableSingleFileAnalyzer = 
+build_property.EnableTrimAnalyzer = false
+build_property.IncludeAllContentForSelfExtract = 
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = false
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = browser
+build_property.RootNamespace = QuizFrontend
+build_property.RootNamespace = QuizFrontend
+build_property.ProjectDir = C:\Users\honza\source\repos\QuizApi\QuizFrontend\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = false
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\honza\source\repos\QuizApi\QuizFrontend
+build_property._RazorSourceGeneratorDebug = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/CreateLobby.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ3JlYXRlTG9iYnkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/CreateQuiz.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ3JlYXRlUXVpei5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/EditQuiz.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRWRpdFF1aXoucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/JoinLobby.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSm9pbkxvYmJ5LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/Lobby.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9iYnkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/QuizGame.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUXVpekdhbWUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/QuizHost.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUXVpekhvc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVnaXN0ZXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Pages/TestSignalR.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGVzdFNpZ25hbFIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-ul61gve1fb
+
+[C:/Users/honza/source/repos/QuizApi/QuizFrontend/Layout/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = TGF5b3V0XE5hdk1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-vbb4cctl9q

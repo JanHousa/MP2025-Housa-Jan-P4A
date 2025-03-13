@@ -1,0 +1,237 @@
+﻿@page "/edit-quiz/{quizId:int}"
+@using System.Net.Http.Headers
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+@code {
+    [Parameter] public int quizId { get; set; }
+    private QuizModel quiz = new QuizModel();
+    private string editQuizMessage = string.Empty;
+    private string token = string.Empty;
+    private int? selectedQuestionIndex = null;
+    private bool isLoading = true;
+
+    public class QuizModel
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public List<QuestionModel> Questions { get; set; } = new List<QuestionModel>();
+    }
+
+    public class QuestionModel
+    {
+        public int? Id { get; set; }
+        public string Title { get; set; } = "New Question";
+        public string ImageUrl { get; set; } = "DefaultImageUrl.jpg";
+        public string Text { get; set; } = "Default question text";
+        public string Type { get; set; } = "MultipleChoice";
+        public List<string> Options { get; set; } = new List<string> { "Option 1", "Option 2", "Option 3", "Option 4" };
+        public string CorrectAnswer { get; set; } = "Option 1";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadQuiz();
+    }
+
+    private async Task LoadQuiz()
+    {
+        try
+        {
+            token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"https://localhost:5198/api/quiz/{quizId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                quiz = await response.Content.ReadFromJsonAsync<QuizModel>();
+                editQuizMessage = "Quiz loaded successfully.";
+                selectedQuestionIndex = quiz.Questions.Any() ? 0 : (int?)null;
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                editQuizMessage = $"Failed to load quiz. Error: {errorMessage}";
+            }
+        }
+        catch (Exception ex)
+        {
+            editQuizMessage = $"Error loading quiz: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectQuestion(int index)
+    {
+        if (!isLoading && quiz.Questions != null && index >= 0 && index < quiz.Questions.Count)
+        {
+            selectedQuestionIndex = index;
+            editQuizMessage = $"Selected question {index + 1} for editing.";
+        }
+        else
+        {
+            editQuizMessage = "Invalid question selected.";
+            selectedQuestionIndex = null;
+        }
+    }
+
+    private async Task AddNewQuestion()
+    {
+        var newQuestion = new QuestionModel();
+        quiz.Questions.Add(newQuestion);
+        selectedQuestionIndex = quiz.Questions.Count - 1;
+        editQuizMessage = "New question added. Please fill in the details and save it.";
+    }
+
+    private async Task SaveQuestion()
+    {
+        if (selectedQuestionIndex.HasValue)
+        {
+            var question = quiz.Questions[selectedQuestionIndex.Value];
+            try
+            {
+                if (!question.Id.HasValue || question.Id == 0)
+                {
+                    question.Id = null; 
+
+                    await JSRuntime.InvokeVoidAsync("console.log", "Sending new question:", question);
+
+                    var request = new HttpRequestMessage(HttpMethod.Post, $"https://localhost:5198/api/quiz/{quizId}/add-question")
+                        {
+                            Content = JsonContent.Create(question)
+                        };
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                    var response = await Http.SendAsync(request);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var createdQuestion = await response.Content.ReadFromJsonAsync<QuestionModel>();
+                        quiz.Questions[selectedQuestionIndex.Value] = createdQuestion;
+                        editQuizMessage = "New question saved successfully.";
+                    }
+                    else
+                    {
+                        var errorMessage = await response.Content.ReadAsStringAsync();
+                        editQuizMessage = $"Failed to save new question. Error: {errorMessage}";
+                    }
+                }
+                else
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Put, $"https://localhost:5198/api/quiz/{quizId}/update-question/{question.Id}")
+                        {
+                            Content = JsonContent.Create(question)
+                        };
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                    var response = await Http.SendAsync(request);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        editQuizMessage = "Question updated successfully.";
+                    }
+                    else
+                    {
+                        var errorMessage = await response.Content.ReadAsStringAsync();
+                        editQuizMessage = $"Failed to update question. Error: {errorMessage}";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                editQuizMessage = $"Error saving question: {ex.Message}";
+            }
+        }
+    }
+
+}
+
+<h3>Edit Quiz</h3>
+
+<div style="display: flex;">
+    <div style="width: 20%; border-right: 1px solid #ddd; padding: 10px;">
+        <h4>Questions</h4>
+        <ul style="list-style-type: none; padding: 0;">
+            @if (isLoading)
+            {
+                <p>Loading questions...</p>
+            }
+            else
+            {
+                @for (int i = 0; i < quiz.Questions.Count; i++)
+                {
+                    var currentIndex = i;
+                    <li>
+                        <button @onclick="() => SelectQuestion(currentIndex)"
+                                style="width: 100%; margin-bottom: 5px; padding: 8px; background-color: @((selectedQuestionIndex == currentIndex) ? "#f0f0f0" : "#fff");">
+                            Question @(currentIndex + 1)
+                        </button>
+                    </li>
+                }
+                <button @onclick="AddNewQuestion">Add Question</button>
+            }
+        </ul>
+    </div>
+
+    <div style="flex-grow: 1; padding: 20px;">
+        @if (selectedQuestionIndex.HasValue && selectedQuestionIndex.Value < quiz.Questions.Count)
+        {
+            var question = quiz.Questions[selectedQuestionIndex.Value];
+            <EditForm Model="question" OnValidSubmit="SaveQuestion">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div>
+                    <label>Title:</label>
+                    <InputText @bind-Value="question.Title" />
+                </div>
+                <div>
+                    <label>Text:</label>
+                    <InputTextArea @bind-Value="question.Text" />
+                </div>
+                <div>
+                    <label>Type:</label>
+                    <InputSelect @bind-Value="question.Type">
+                        <option value="YesNo">Yes/No</option>
+                        <option value="MultipleChoice">Multiple Choice</option>
+                    </InputSelect>
+                </div>
+                @if (question.Type == "MultipleChoice")
+                {
+                    <div>
+                        <h5>Options</h5>
+                        @for (int j = 0; j < 4; j++)
+                        {
+                            if (question.Options.Count <= j) question.Options.Add("");
+                            var placeholderText = $"Option {j + 1}";
+                            <InputText @bind-Value="question.Options[j]" placeholder="@placeholderText" />
+                        }
+                    </div>
+                }
+
+                <div>
+                    <label>Image URL:</label>
+                    <InputText @bind-Value="question.ImageUrl" placeholder="Optional image URL" />
+                </div>
+                <div>
+                    <label>Correct Answer:</label>
+                    <InputText @bind-Value="question.CorrectAnswer" />
+                </div>
+                <button type="submit">Save Question</button>
+            </EditForm>
+        }
+        else
+        {
+            <p>Select a question to edit.</p>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(editQuizMessage))
+{
+    <p>@editQuizMessage</p>
+}

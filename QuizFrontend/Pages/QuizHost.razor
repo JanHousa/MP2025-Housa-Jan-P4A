@@ -1,0 +1,206 @@
+﻿@page "/quiz-host/{lobbyPin}"
+@using Frontend.Services
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject SignalRClientService SignalRClientService
+
+<div class="container host-container mt-4">
+    <h3 class="text-center my-4 display-6">
+        Hosting Quiz - Lobby @lobbyPin
+    </h3>
+
+    <div class="row gx-4 gy-4">
+        <!-- LEVÝ sloupec: Otázka a ovládání -->
+        <div class="col-lg-6 question-control-col">
+            <h4 class="text-center mb-3">Question Control</h4>
+            <div class="card p-4 question-card shadow-lg">
+                <div class="mb-4">
+                    <h5>Current Question</h5>
+                    @if (currentQuestion != null)
+                    {
+                        <h2 class="question-title">@currentQuestion.Text</h2>
+
+                        @if (!string.IsNullOrEmpty(currentQuestion.ImageUrl))
+                        {
+                            <img src="@currentQuestion.ImageUrl"
+                                 alt="Question Image"
+                                 class="question-image mb-3" />
+                        }
+                        <ul>
+                            @foreach (var option in currentQuestion.Options)
+                            {
+                                <li>@option</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No question selected.</p>
+                    }
+                </div>
+
+                @if (canNavigateToNextQuestion)
+                {
+                    <button class="btn btn-primary"
+                            @onclick="NextQuestion">
+                        Next Question
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-danger"
+                            @onclick="EndQuiz">
+                        End Quiz
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- PRAVÝ sloupec: Odpovědi hráčů -->
+        <div class="col-lg-6 responses-col">
+            <h4 class="text-center mb-3">Player Responses</h4>
+            <div class="card p-4 shadow-lg responses-card">
+                <ul class="list-group">
+                    @if (playerResponses.Any())
+                    {
+                        @foreach (var response in playerResponses)
+                        {
+                            <li class="list-group-item">
+                                <strong>@response.Nickname:</strong> @response.Answer
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="list-group-item text-center text-muted">
+                            No responses yet.
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string lobbyPin { get; set; }
+    private List<QuestionModel> questions = new();
+    private QuestionModel currentQuestion;
+    private int currentQuestionIndex = -1;
+    private List<PlayerResponse> playerResponses = new();
+
+    // Kontrola, zda existuje další otázka
+    private bool canNavigateToNextQuestion => currentQuestionIndex < questions.Count - 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SignalRClientService.IsConnected)
+        {
+            await SignalRClientService.StartConnection("https://localhost:5198/gamehub");
+        }
+
+        // Registrace metody, která přijímá odpovědi hráčů
+        SignalRClientService.RegisterPlayerAnswers((responses) =>
+        {
+            playerResponses = responses.Select(r => new PlayerResponse
+                {
+                    Nickname = r.Nickname,
+                    Answer = r.Answer
+                }).ToList();
+
+            InvokeAsync(StateHasChanged);
+        });
+
+        // Kontrola tokenu
+        var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        // Načteme kvíz z API a připravíme otázky
+        int quizId = await SignalRClientService.GetQuizIdFromLobby(lobbyPin, token);
+        questions = await SignalRClientService.GetQuizQuestions(quizId, token);
+
+        if (questions.Any())
+        {
+            currentQuestionIndex = -1;
+            NextQuestion();
+        }
+    }
+
+    private async Task NextQuestion()
+    {
+        if (currentQuestionIndex < questions.Count - 1)
+        {
+            currentQuestionIndex++;
+            currentQuestion = questions[currentQuestionIndex];
+
+            // Pošleme otázku hráčům pomocí SignalR
+            await SignalRClientService.SendQuestion(
+                lobbyPin,
+                currentQuestion.Text,
+                currentQuestion.ImageUrl,
+                currentQuestion.Options,
+                currentQuestion.CorrectAnswer
+            );
+        }
+    }
+
+    private async Task EndQuiz()
+    {
+        // Odešleme zprávu všem hráčům, aby zobrazili finální hodnotící tabulku
+        await SignalRClientService.EndQuiz(lobbyPin);
+
+        // Např. můžeme hostitele přesměrovat na stránku s finálním skóre
+        NavigationManager.NavigateTo($"/final-results/{lobbyPin}");
+    }
+
+    public class QuestionModel
+    {
+        public string Text { get; set; }
+        public string ImageUrl { get; set; }
+        public List<string> Options { get; set; }
+        public string CorrectAnswer { get; set; }
+    }
+
+    public class PlayerResponse
+    {
+        public string Nickname { get; set; }
+        public string Answer { get; set; }
+    }
+}
+
+
+<style>
+    .host-container {
+        max-width: 1200px; 
+    }
+
+    .question-card, .responses-card {
+        border-radius: 8px;
+        border: 2px solid #ddd;
+    }
+
+    .question-title {
+        font-size: 1.5rem; 
+        margin: 1rem 0;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .question-image {
+        display: block;
+        max-width: 100%;
+        max-height: 250px;
+        object-fit: cover;
+        margin: 0 auto;
+    }
+
+    .question-control-col,
+    .responses-col {
+        margin-bottom: 1rem;
+    }
+  
+</style>

@@ -1,0 +1,137 @@
+﻿@page "/"
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+<link href="css/styles.css" rel="stylesheet">
+
+<PageTitle>QuizApp</PageTitle>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Hlavní kontejner s pozadím -->
+<div class="page-background">
+    <!-- Banner -->
+    <div class="container bg-light py-4 rounded shadow-sm">
+        <div class="row align-items-center">
+            <div class="col-md-4 text-center">
+                <img src="./images/banner.png" alt="Banner" class="img-fluid rounded" style="max-height: 150px;">
+            </div>
+            <div class="col-md-8">
+                <h1 class="display-6 fw-bold">Welcome to QuizApp</h1>
+                <p class="lead text-muted">Discover fun and challenging quizzes to test your knowledge!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Karty -->
+    <div class="container mt-5">
+        <div class="row g-4 justify-content-center">
+            <!-- Join Lobby karta -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <img src="./images/lobby_banner.jpg" class="card-img-top" alt="Play Quiz">
+                    <div class="card-body text-center">
+                        <h5 class="card-title fw-bold">Join a Quiz Lobby</h5>
+                        <p class="card-text">Enter a lobby to start playing quizzes created by others.</p>
+                        <button class="btn btn-primary btn-lg mb-2 me-2" @onclick="NavigateToJoinLobby">Join Now</button>
+                        @if (isUserLoggedIn)
+                        {
+                            <button class="btn btn-primary btn-lg mb-2" @onclick="NavigateToCreateLobby">Create Lobby</button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Quiz karta (pouze pro přihlášené uživatele) -->
+            @if (isUserLoggedIn)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm">
+                        <img src="https://cdn.scoreapp.com/site/uploads/2022/08/make-quiz-knowledge-1024x512.png" class="card-img-top" alt="Create Quiz">
+                        <div class="card-body text-center">
+                            <h5 class="card-title fw-bold">Create Your Own Quiz</h5>
+                            <p class="card-text">Design custom quizzes with your own questions and answers.</p>
+                            <button class="btn btn-success btn-lg" @onclick="NavigateToCreateQuiz">Create Now</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logout karta -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm">
+                        <img src="./images/login_banner.jpg" class="card-img-top" alt="Logout">
+                        <div class="card-body text-center">
+                            <h5 class="card-title fw-bold">Logout</h5>
+                            <p class="card-text">Sign out of your account.</p>
+                            <button class="btn btn-danger btn-lg" @onclick="Logout">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Login karta -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm">
+                        <img src="./images/login_banner.jpg" class="card-img-top" alt="Login">
+                        <div class="card-body text-center">
+                            <h5 class="card-title fw-bold">Login</h5>
+                            <p class="card-text">Sign in to access all features, such as creating quizzes and moderating lobbies.</p>
+                            <button class="btn btn-info btn-lg" @onclick="NavigateToLogin">Login</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <img src="./images/giphy.gif" class="absolute-image" alt="Absolute Image">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+    .page-background {
+        background-image: url('./images/joinlobby_background.jpg'); /* Cesta k obrázku pozadí */
+        background-size: cover; /* Obrázek pokryje celou stránku */
+        background-position: center; /* Obrázek bude vycentrován */
+        background-repeat: no-repeat; /* Obrázek se nebude opakovat */
+        min-height: 100vh; /* Pozadí pokryje celou výšku stránky */
+    }   
+</style>
+
+
+@code {
+    private bool isUserLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+        isUserLoggedIn = !string.IsNullOrEmpty(token);
+    }
+
+    private void NavigateToJoinLobby()
+    {
+        NavigationManager.NavigateTo("/joinlobby");
+    }
+
+    private void NavigateToCreateLobby()
+    {
+        NavigationManager.NavigateTo("/create-lobby");
+    }
+
+    private void NavigateToCreateQuiz()
+    {
+        NavigationManager.NavigateTo("/create-quiz");
+    }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+
+    private async Task Logout()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        isUserLoggedIn = false;
+        NavigationManager.NavigateTo("/"); 
+    }
+}

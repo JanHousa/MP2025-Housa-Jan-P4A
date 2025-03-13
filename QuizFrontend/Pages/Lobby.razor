@@ -1,0 +1,188 @@
+﻿@using Frontend.Services
+@page "/lobby/{lobbyPin}"
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject SignalRClientService SignalRClientService
+
+<div class="lobby-page">
+    <h2 class="text-center text-white">Lobby PIN: @lobbyPin</h2>
+
+    <div class="container">
+        <div class="user-list">
+            @if (connectedUsers.Any())
+            {
+                @foreach (var user in connectedUsers)
+                {
+                    <div class="user-card">
+                        <img src="@avatarUrls[user]" alt="Avatar" class="user-avatar" />
+                        <span class="user-name">@user</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-users">
+                    No users connected.
+                </div>
+            }
+        </div>
+
+        @if (isOwner)
+        {
+            <div class="text-center mt-4">
+                <button class="btn btn-dark btn-lg" @onclick="StartGame">Start Game</button>
+            </div>
+        }
+
+        <div class="spotify-widget">
+            <iframe src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M" width="300" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+        </div>
+    </div>
+</div>
+
+<style>
+    .lobby-page {
+        background-image: url('./images/joinlobby_background.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        min-height: 100vh;
+        padding: 2rem; 
+    }
+
+    h2 {
+        padding-top: 3rem;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        padding-bottom: 3rem;
+    }
+
+    .user-list {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem; 
+        align-items: center;
+        justify-content: center;
+    }
+
+    .user-card {
+        display: flex; 
+        align-items: center; 
+        background-color: rgba(255, 255, 255, 0.9); 
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); 
+    }
+
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 20%; 
+        object-fit: cover;
+    }
+
+    .user-name {
+        margin-left: 1rem;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+        color: #333; 
+        font-weight: bold;
+    }
+
+    .no-users {
+        color: #ffcc00;
+        font-size: 1.2rem;
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .start-game-btn {
+        padding: 0.8rem 2rem;
+        font-size: 1.2rem;
+        color: white;
+        background-color: #00000;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+        .start-game-btn:hover {
+            background-color: #0056b3;
+        }
+
+    .spotify-widget {
+        position: fixed;
+        bottom: 40px;
+        right: 40px;
+        width: 300px;
+        height: 80px;
+        z-index: 1000;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        padding: 2px;
+    }
+</style>
+
+@code {
+    [Parameter] public string lobbyPin { get; set; }
+    private List<string> connectedUsers = new List<string>();
+    private Dictionary<string, string> avatarUrls = new Dictionary<string, string>();
+    private string nickname = string.Empty;
+    private string avatarUrl = string.Empty;
+    private bool isOwner = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SignalRClientService.IsConnected)
+        {
+            await SignalRClientService.StartConnection("https://localhost:5198/gamehub");
+        }
+
+        SignalRClientService.RegisterUpdateUserList((users, avatars) =>
+        {
+            connectedUsers = users;
+            avatarUrls = avatars;
+            InvokeAsync(StateHasChanged); // Ensure UI updates
+        });
+
+        SignalRClientService.RegisterNavigateToGamePage((pin) =>
+        {
+            if (!isOwner)
+            {
+                Console.WriteLine($"NavigateToGamePage event received for lobby {pin}. Redirecting to quiz-game.");
+                NavigationManager.NavigateTo($"/quiz-game/{pin}");
+            }
+        });
+
+        var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+        isOwner = await SignalRClientService.CheckLobbyOwnershipViaApi(lobbyPin, token);
+
+        if (isOwner)
+        {
+            nickname = "Admin";
+            avatarUrl = "https://as1.ftcdn.net/v2/jpg/01/12/09/12/1000_F_112091233_xghsriqmHzk4sq71lWBL4q0e7n9QJKX6.jpg";
+        }
+        else
+        {
+            nickname = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "nickname");
+            avatarUrl = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "avatarUrl");
+
+            if (string.IsNullOrEmpty(nickname) || string.IsNullOrEmpty(avatarUrl))
+            {
+                NavigationManager.NavigateTo("/joinlobby");
+                return;
+            }
+        }
+
+        await SignalRClientService.JoinLobby(lobbyPin, nickname, avatarUrl);
+    }
+
+    private async Task StartGame()
+    {
+        if (isOwner)
+        {
+            await SignalRClientService.StartGame(lobbyPin);
+            NavigationManager.NavigateTo($"/quiz-host/{lobbyPin}");
+        }
+    }
+}

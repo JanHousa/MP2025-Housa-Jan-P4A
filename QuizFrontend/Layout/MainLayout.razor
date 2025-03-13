@@ -1,0 +1,25 @@
+﻿@inherits LayoutComponentBase
+<head>
+    <link href="~/css/styles.css" rel="stylesheet" />
+</head>
+<head>
+    <style>
+        body {
+            user-select: none; /* Zakáže označování textu */
+            -webkit-user-select: none; /* Pro starší prohlížeče (např. Safari) */
+            -moz-user-select: none; /* Pro Firefox */
+            -ms-user-select: none; /* Pro Internet Explorer */
+        }
+
+        img {
+            pointer-events: none; /* Zakáže interakce s obrázky (např. drag-and-drop) */
+        }
+    </style>
+</head>
+<div class="d-flex">
+    <!-- Hlavní obsah -->
+    <div class="flex-grow-1">
+        @Body
+    </div>
+</div>
+

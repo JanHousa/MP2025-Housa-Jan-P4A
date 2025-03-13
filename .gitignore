@@ -1,0 +1,7 @@
+# Visual Studio related files
+.vs/
+*.suo
+*.db
+*.db-shm
+*.db-wal
+*.backup.json

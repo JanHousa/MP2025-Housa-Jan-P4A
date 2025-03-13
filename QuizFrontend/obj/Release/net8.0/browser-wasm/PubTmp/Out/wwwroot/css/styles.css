@@ -1,0 +1,15 @@
+﻿.absolute-image {
+    position: fixed;
+    bottom: -40px; /* Úprava pro požadované odsazení odspodu */
+    left: 20px; /* Úprava pro požadované odsazení zleva */
+    z-index: 1000; /* Případně nastavte vyšší vrstvu než zbytek obsahu */
+    width: 200px; /* Případně nastavte šířku obrázku */
+}
+
+/* Skrytí obrázku na malých obrazovkách */
+@media screen and (max-width: 1000px) {
+    .absolute-image {
+        display: none; /* Skryje obrázek na obrazovkách užších než 768px */
+    }
+}
+

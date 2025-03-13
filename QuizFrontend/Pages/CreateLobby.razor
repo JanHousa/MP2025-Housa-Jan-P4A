@@ -1,0 +1,176 @@
+﻿@page "/create-lobby"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-light custom-background">
+    <div class="card shadow-lg p-4 position-relative" style="max-width: 400px; width: 100%;">
+        <!-- Obrázek nad kartičkou -->
+        <div class="character-image">
+            <img src="./images/avatar.png" alt="Character" class="character-img" />
+        </div>
+
+        <div class="text-center">
+            <h3 class="mb-4">Create Lobby</h3>
+        </div>
+
+        <EditForm Model="@createLobbyModel" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="alert alert-danger" />
+
+            <!-- Dropdown pro výběr kvízu -->
+            <div class="mb-3">
+                <InputSelect id="quizId" @bind-Value="createLobbyModel.QuizId" class="form-select">
+                    <option value="">-- Select a Quiz --</option>
+                    @foreach (var quiz in userQuizzes)
+                    {
+                        <option value="@quiz.Id">@quiz.Title</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <button type="submit" class="btn btn-dark btn-lg w-100">Create</button>
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(createLobbyMessage))
+        {
+            <div class="alert alert-info mt-4 text-center">
+                <p class="mb-0">@createLobbyMessage</p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(pinCode))
+        {
+            <div class="alert alert-success mt-4 text-center">
+                <p class="mb-0">Lobby PIN: <strong>@pinCode</strong></p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .custom-background {
+        background-image: url('./images/joinlobby_background.jpg'); 
+        background-size: cover; 
+        background-position: center; 
+        background-repeat: no-repeat; 
+    }
+
+    .character-image {
+        position: absolute;
+        top: -80px; 
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1; 
+    }
+
+    .character-img {
+        width: 100px; 
+        height: auto;
+    }
+
+    .form-select{
+        font-size: 1.25rem;
+    }
+</style>
+
+@code {
+    private CreateLobbyModel createLobbyModel = new CreateLobbyModel();
+    private string createLobbyMessage = string.Empty;
+    private string pinCode = string.Empty;
+    private string token = string.Empty;
+
+    private List<UserQuiz> userQuizzes = new();
+
+    public class CreateLobbyModel
+    {
+        public int QuizId { get; set; }
+    }
+
+    public class UserQuiz
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+    }
+
+    private async Task LoadUserQuizzes()
+    {
+        try
+        {
+            token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+
+            if (string.IsNullOrEmpty(token))
+            {
+                createLobbyMessage = "You must be logged in to view your quizzes.";
+                return;
+            }
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Get, "https://localhost:5198/api/quiz/user-quizzes");
+            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(requestMessage);
+
+            if (response.IsSuccessStatusCode)
+            {
+                userQuizzes = await response.Content.ReadFromJsonAsync<List<UserQuiz>>();
+            }
+            else
+            {
+                createLobbyMessage = "Failed to load quizzes. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            createLobbyMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+
+            if (string.IsNullOrEmpty(token))
+            {
+                createLobbyMessage = "You must be logged in to create a lobby.";
+                return;
+            }
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://localhost:5198/api/lobby/create")
+                {
+                    Content = JsonContent.Create(createLobbyModel)
+                };
+
+            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(requestMessage);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CreateLobbyResponse>();
+                pinCode = result.Pin;
+
+                Navigation.NavigateTo($"/lobby/{pinCode}");
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                createLobbyMessage = $"Failed to create lobby. Error: {errorMessage}";
+            }
+        }
+        catch (Exception ex)
+        {
+            createLobbyMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    public class CreateLobbyResponse
+    {
+        public string Pin { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserQuizzes();
+    }
+}
