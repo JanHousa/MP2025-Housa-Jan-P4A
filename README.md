@@ -1,5 +1,5 @@
 ## Vývoj
-- README slouží jako dokumentace projektu <br />
+- Veškeré zdrojové kódy jsou ve složkách QuizApi (backend) a QuizFrontend
 - [Katalog požadavků](https://pslib.sharepoint.com/:w:/s/p2021a/Ed5VjzOuqWtFqRbVP0DZfpQBq4TWULvlHUxKFtUMgnk0pw?e=LByOs5)
 - [Projektová karta](https://pslib.sharepoint.com/:w:/s/p2021a/Ed5VjzOuqWtFqRbVP0DZfpQBq4TWULvlHUxKFtUMgnk0pw?e=LByOs5)
 - [Dokument](https://pslib.sharepoint.com/:w:/s/p2021a/Een2-Usbpb9DkMPERqsvYiMBOMQz5vFvvDewMDAPm_nncw?e=nXNj5e)
