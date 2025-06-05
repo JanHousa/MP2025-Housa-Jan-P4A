@@ -1,4 +1,4 @@
-![Login](sources/projekt1.jpg)
+![Thumbnail](sources/projekt1.jpg)
 
 ## O Aplikaci
 Tato práce se zabývá vývojem multiplatformní kvízové aplikace, inspirované platformou Kahoot. Cílem práce je vytvořit interaktivní nástroj, který umožní uživatelům zapojit se do kvízů na různá témata a registrovaným uživatelům nabídne možnost vytvářet vlastní kvízy s různými typy otázek. Implementace probíhá v rámci platformy .NET Blazor, s využitím technologie SignalR pro real-time komunikaci a SQL databáze hostované na Azure.
