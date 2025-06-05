@@ -1,8 +1,6 @@
 ## Vývoj
 - Veškeré zdrojové kódy jsou ve složkách QuizApi (backend) a QuizFrontend
-- [Katalog požadavků](https://pslib.sharepoint.com/:w:/s/p2021a/Ed5VjzOuqWtFqRbVP0DZfpQBq4TWULvlHUxKFtUMgnk0pw?e=LByOs5)
-- [Projektová karta](https://pslib.sharepoint.com/:w:/s/p2021a/Ed5VjzOuqWtFqRbVP0DZfpQBq4TWULvlHUxKFtUMgnk0pw?e=LByOs5)
-- [Dokument](https://pslib.sharepoint.com/:w:/s/p2021a/Een2-Usbpb9DkMPERqsvYiMBOMQz5vFvvDewMDAPm_nncw?e=nXNj5e)
+- [Dokument](https://github.com/JanHousa/MP2025-Housa-Jan-P4A/blob/main/sources/MP2025-Housa-Jan-P4A-Multiplatformn%C3%AD_kv%C3%ADzov%C3%A1_aplikace.pdf)
 
 ## Přihlašování
 ![Login](sources/Login.gif)
