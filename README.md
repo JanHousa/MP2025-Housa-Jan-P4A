@@ -1,9 +1,8 @@
 ## O Aplikaci
 Tato práce se zabývá vývojem multiplatformní kvízové aplikace, inspirované platformou Kahoot. Cílem práce je vytvořit interaktivní nástroj, který umožní uživatelům zapojit se do kvízů na různá témata a registrovaným uživatelům nabídne možnost vytvářet vlastní kvízy s různými typy otázek. Implementace probíhá v rámci platformy .NET Blazor, s využitím technologie SignalR pro real-time komunikaci a SQL databáze hostované na Azure.
-
+- [Dokument](https://github.com/JanHousa/MP2025-Housa-Jan-P4A/blob/main/sources/MP2025-Housa-Jan-P4A-Multiplatformn%C3%AD_kv%C3%ADzov%C3%A1_aplikace.pdf)
 ## Vývoj
 - Veškeré zdrojové kódy jsou ve složkách QuizApi (backend) a QuizFrontend
-- [Dokument](https://github.com/JanHousa/MP2025-Housa-Jan-P4A/blob/main/sources/MP2025-Housa-Jan-P4A-Multiplatformn%C3%AD_kv%C3%ADzov%C3%A1_aplikace.pdf)
 
 ## Přihlašování
 ![Login](sources/Login.gif)
